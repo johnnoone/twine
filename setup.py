@@ -30,6 +30,11 @@ if sys.version_info[:2] < (2, 7):
         "argparse",
     ]
 
+if sys.version_info[:2] < (3, 4):
+    install_requires += [
+        "pathlib2",
+    ]
+
 
 setup(
     name=twine.__title__,
@@ -71,6 +76,7 @@ setup(
         "twine.registered_commands": [
             "upload = twine.commands.upload:main",
             "register = twine.commands.register:main",
+            "doc-upload = twine.commands.doc:main",
         ],
         "console_scripts": [
             "twine = twine.__main__:main",

@@ -22,6 +22,10 @@ import pkg_resources
 from twine.wheel import Wheel
 from twine.wininst import WinInst
 
+import tempfile
+import pathlib
+import zipfile
+
 DIST_TYPES = {
     "bdist_wheel": Wheel,
     "bdist_wininst": WinInst,
@@ -158,3 +162,45 @@ class PackageFile(object):
         subprocess.check_call(gpg_args)
 
         self.add_gpg_signature(self.signed_filename, self.signed_basefilename)
+
+
+class DocumentPackage(object):
+    def __init__(self, filename, metadata, source):
+        self.filename = filename
+        self.metadata = metadata
+        self.source = source
+        self.safe_name = pkg_resources.safe_name(metadata.name)
+
+    @classmethod
+    def from_filename(cls, filename, source):
+        # Extract the metadata from the package
+        for ext, dtype in DIST_EXTENSIONS.items():
+            if filename.endswith(ext):
+                meta = DIST_TYPES[dtype](filename)
+                break
+        else:
+            raise ValueError(
+                "Unknown distribution format: '%s'" %
+                os.path.basename(filename)
+            )
+
+        source = pathlib.Path(source)
+        if not source.exists():
+            raise ValueError('Source does not exists')
+        if source.is_file():
+            return cls(source, meta, source)
+
+        fp = tempfile.TemporaryFile("wb")
+        with zipfile.ZipFile(fp, 'w') as z:
+            root = pathlib.Path(source)
+            for child in root.rglob('*'):
+                arcname = str(child.relative_to(root))
+                z.write(str(child), arcname)
+        return cls(fp.name, meta, source)
+
+    def metadata_dictionary(self):
+        data = {
+            "name": self.safe_name,
+        }
+
+        return data

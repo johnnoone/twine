@@ -16,7 +16,6 @@ from __future__ import absolute_import, unicode_literals, print_function
 import requests
 from requests_toolbelt.multipart import MultipartEncoder
 
-
 KEYWORDS_TO_NOT_FLATTEN = set(["gpg_signature", "content"])
 
 
@@ -73,7 +72,6 @@ class Repository(object):
     def upload(self, package):
         data = package.metadata_dictionary()
         data.update({
-            # action
             ":action": "file_upload",
             "protcol_version": "1",
         })
@@ -86,6 +84,34 @@ class Repository(object):
             data_to_send.append((
                 "content",
                 (package.basefilename, fp, "application/octet-stream"),
+            ))
+            encoder = MultipartEncoder(data_to_send)
+
+            resp = self.session.post(
+                self.url,
+                data=encoder,
+                allow_redirects=False,
+                headers={'Content-Type': encoder.content_type},
+            )
+
+        return resp
+
+    def doc_upload(self, package):
+        data = package.metadata_dictionary()
+        data.update({
+            ":action": "doc_upload",
+            "protcol_version": "1",
+        })
+
+        data_to_send = self._convert_data_to_list_of_tuples(data)
+
+        print("Uploading {0}".format(package.source))
+
+        with open(package.filename, "rb") as fp:
+
+            data_to_send.append((
+                "content",
+                ('doc.zip', fp, "application/octet-stream"),
             ))
             encoder = MultipartEncoder(data_to_send)
 
